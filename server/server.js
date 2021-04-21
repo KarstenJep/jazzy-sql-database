@@ -8,10 +8,6 @@ const PORT = 5000;
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(express.static('server/public'));
 
-// Routes
-// let musicRouter = require('./routes/music_router');
-// app.use('/musicLibrary', musicRouter);
-
 // Set up PG to connect with the DB!!!!
 const Pool = pg.Pool; // Alternat entry: const { Pool } = require('pg.Pool');
 const pool = new Pool({
@@ -34,47 +30,10 @@ app.listen(PORT, () => {
     console.log('listening on port', PORT)
 });
 
-// TODO - Replace static content with a database tables
-// const artistList = [ 
-//     {
-//         name: 'Ella Fitzgerald',
-//         birthdate: '04-25-1917'
-//     },
-//     {
-//         name: 'Dave Brubeck',
-//         birthdate: '12-06-1920'
-//     },       
-//     {
-//         name: 'Miles Davis',
-//         birthdate: '05-26-1926'
-//     },
-//     {
-//         name: 'Esperanza Spalding',
-//         birthdate: '10-18-1984'
-//     },
-// ]
-// const songList = [
-//     {
-//         title: 'Take Five',
-//         length: '5:24',
-//         released: '1959-09-29'
-//     },
-//     {
-//         title: 'So What',
-//         length: '9:22',
-//         released: '1959-08-17'
-//     },
-//     {
-//         title: 'Black Gold',
-//         length: '5:17',
-//         released: '2012-02-01'
-//     }
-// ];
-
+// GET artist
 app.get('/artist', (req, res) => {
     console.log(`In /artist GET`);
-    //res.send(artistList);
-    let queryText = 'SELECT * FROM artist;'
+    let queryText = 'SELECT * FROM artist ORDER BY birthdate DESC;'
     pool.query(queryText)
         .then(dbResult => {
             res.send(dbResult.rows);
@@ -85,15 +44,34 @@ app.get('/artist', (req, res) => {
         });
 });
 
+// POST artist
 app.post('/artist', (req, res) => {
-    artistList.push(req.body);
-    res.sendStatus(201);
+    console.log('In /artist POST');
+    const newArtist = `INSERT INTO artist (name, birthdate)
+                        VALUES ($1, $2);`;
+    const artist = {
+        name: req.body.name,
+        birthdate: req.body.birthdate,
+    };
+    console.log('In app.post', newArtist, artist);
+    
+    pool.query(newArtist, [req.body.name, req.body.birthdate])
+        .then(result => {
+            console.log('In result', newArtist, [req.body.name, req.body.birthdate]); // can log result
+            if (result.rows !== []) {
+                res.sendStatus(201);
+            }
+        })
+        .catch(err => {
+            console.log(`didnt work,`, artist);
+            res.sendStatus(500);
+        })
 });
 
+// GET song
 app.get('/song', (req, res) => {
     console.log(`In /song GET`);
-    //res.send(songList);
-    let queryText = 'SELECT * FROM song;'
+    let queryText = 'SELECT * FROM song ORDER BY title;'
     pool.query(queryText)
         .then(dbResult => {
             res.send(dbResult.rows);
@@ -104,9 +82,28 @@ app.get('/song', (req, res) => {
         });
 });
 
+// POST song
 app.post('/song', (req, res) => {
-    songList.push(req.body);
-    res.sendStatus(201);
+    const newSong = `INSERT INTO song (title, length, released)
+                        VALUES ($1, $2, $3);`;
+    const song = {
+        title: req.body.title,
+        length: req.body.length,
+        released: req.body.released,
+    };
+    console.log('In /song POST', song);
+
+    pool.query(newSong, [req.body.title, req.body.length, req.body.released])
+        .then(result => {
+            console.log('In result', result);
+            if (result.rows !== []) {
+                res.sendStatus(201);
+            }
+        })
+        .catch(err => {
+            console.log(`didnt work`, song);
+            res.sendStatus(500);
+        })
 });
 
 
